@@ -17,3 +17,8 @@ parser_results.db
 
 # Mac & OS files
 .DS_Store
+
+backend/__pycache__
+backend/utils/__pycache__
+backend/parsers/__pycache__
+backend/routers/__pycache__

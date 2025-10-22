@@ -1,30 +1,39 @@
 import pdfplumber
-import fitz  # PyMuPDF
-import pytesseract
-from PIL import Image
-import io
+from typing import Optional
 
-def extract_text(path: str) -> str:
-    # Try pdfplumber first
+def extract_text_pdfplumber(pdf_path: str) -> str:
+    """Extract text using pdfplumber"""
     try:
-        with pdfplumber.open(path) as pdf:
-            pages = [p.extract_text() or "" for p in pdf.pages]
-            text = "\n".join(pages).strip()
-            if text:
-                return text
+        text = ""
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        return text
     except Exception as e:
-        # continue to fallback
-        pass
+        print(f"pdfplumber error: {e}")
+        return ""
 
-    # fallback: render pages to images via fitz and OCR with pytesseract
-    text_chunks = []
-    try:
-        doc = fitz.open(path)
-        for page in doc:
-            pix = page.get_pixmap(dpi=200)
-            img = Image.open(io.BytesIO(pix.tobytes()))
-            page_text = pytesseract.image_to_string(img)
-            text_chunks.append(page_text)
-        return "\n".join(text_chunks)
-    except Exception as e:
-        return ""  # return blank if everything fails
+def extract_text_hybrid(pdf_path: str) -> str:
+    """Extract text - simplified to use pdfplumber only"""
+    return extract_text_pdfplumber(pdf_path)
+
+def detect_bank(text: str) -> Optional[str]:
+    """Detect bank from PDF text"""
+    text_lower = text.lower()
+    
+    bank_keywords = {
+        "hdfc": ["hdfc", "hdfc bank"],
+        "icici": ["icici", "icici bank"],
+        "sbi": ["sbi card", "state bank", "sbi"],
+        "axis": ["axis", "axis bank"],
+        "amex": ["american express", "amex", "americanexpress"]
+    }
+    
+    for bank, keywords in bank_keywords.items():
+        for keyword in keywords:
+            if keyword in text_lower:
+                return bank
+    
+    return None

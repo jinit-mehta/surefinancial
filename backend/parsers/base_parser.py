@@ -1,14 +1,17 @@
-# provide helper functions for parsers (shared functions)
-from ..utils.regex_library import find_first, find_date_range
+from abc import ABC, abstractmethod
+from typing import Dict, Optional
 
-def build_base(fields):
-    # returns consistent structure
-    return {
-        "issuer": fields.get("issuer"),
-        "card_variant": fields.get("card_variant"),
-        "last4": fields.get("last4"),
-        "billing_start": fields.get("billing_start"),
-        "billing_end": fields.get("billing_end"),
-        "due_date": fields.get("due_date"),
-        "amount_due": fields.get("amount_due"),
-    }
+class BaseParser(ABC):
+    """Base class for all bank parsers"""
+    
+    def __init__(self, text: str):
+        self.text = text
+        self.bank_name = ""
+    
+    @abstractmethod
+    def parse(self) -> Dict:
+        """Parse the statement and return structured data"""
+        pass
+    
+    def get_bank_name(self) -> str:
+        return self.bank_name
