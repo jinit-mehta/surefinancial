@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Node / Frontend
+node_modules/
+build/
+dist/
+
+# Data / Generated Files
+synthetic_data/pdfs/*.pdf
+reports/
+parser_results.db
+*.sqlite3
+
+# Mac & OS files
+.DS_Store
