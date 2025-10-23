@@ -1,24 +1,19 @@
-# FastAPI and Server
+
+# Backend
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
 python-multipart==0.0.6
-
-# PDF Processing - Use pdfplumber (no compilation issues)
 pdfplumber==0.10.3
-Pillow==10.1.0
-
-# PyMuPDF - Use pre-built wheel version
-# For macOS, use the pre-built binary package
-pymupdf==1.23.8; sys_platform != 'darwin'
-pymupdf==1.23.6; sys_platform == 'darwin'
-
-# Database
+Pillow>=10.3.0
 sqlalchemy==2.0.23
-
-# Utilities
 python-dotenv==1.0.0
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic>=2.8.2
 
-# Optional but recommended
-aiofiles==23.2.1
+# Frontend
+streamlit==1.28.2
+pandas==2.2.3   # or latest version supporting Python 3.13
+plotly==5.18.0
+requests==2.31.0
+
+# Testing
+reportlab==4.0.7

@@ -1,24 +1,45 @@
 from .base_parser import BaseParser
-from utils.regex_library import RegexPatterns, extract_with_regex, extract_billing_cycle, clean_amount
 from typing import Dict
 
 class SBIParser(BaseParser):
+    """Enhanced SBI Card parser with robust extraction"""
+    
     def __init__(self, text: str):
         super().__init__(text)
         self.bank_name = "SBI Card"
     
     def parse(self) -> Dict:
+        from utils.regex_library import (
+            RegexPatterns, 
+            extract_card_variant,
+            extract_last_4,
+            calculate_confidence
+        )
+        
         patterns = RegexPatterns.SBI
         
-        card_variant = extract_with_regex(patterns["card_variant"], self.text) or "SBI Credit Card"
-        last_4 = extract_with_regex(patterns["last_4"], self.text) or "XXXX"
+        # Extract card variant
+        card_variant = extract_card_variant(patterns["card_variant"], self.text)
+        if not card_variant:
+            card_variant = "SBI Credit Card"
         
-        billing_start, billing_end = extract_billing_cycle(patterns["billing_cycle"], self.text)
-        due_date = extract_with_regex(patterns["due_date"], self.text)
-        total_due_str = extract_with_regex(patterns["total_due"], self.text)
-        total_due = clean_amount(total_due_str) if total_due_str else 0.0
+        # Extract last 4 digits
+        last_4 = extract_last_4(patterns["last_4"], self.text)
+        if not last_4:
+            last_4 = "XXXX"
         
-        return {
+        # Extract billing cycle
+        billing_start, billing_end = self.extract_billing_cycle(patterns["billing_cycle_keywords"])
+        
+        # Extract due date
+        due_date = self.extract_date_near_keywords(patterns["due_date_keywords"])
+        
+        # Extract total amount due
+        total_due = self.extract_amount_near_keywords(patterns["total_due_keywords"])
+        if total_due is None or total_due == 0:
+            total_due = 0.0
+        
+        extracted_data = {
             "bank_name": self.bank_name,
             "card_variant": card_variant,
             "last_4_digits": last_4,
@@ -28,3 +49,18 @@ class SBIParser(BaseParser):
             "total_amount_due": total_due,
             "currency": "INR"
         }
+        
+        # Calculate confidence scores
+        confidence = calculate_confidence(extracted_data)
+        extracted_data['confidence_scores'] = confidence
+        
+        # Add warnings
+        warnings = []
+        if confidence['total_amount_due'] < 0.5:
+            warnings.append("Amount extraction has low confidence - manual verification recommended")
+        if not billing_start or not billing_end:
+            warnings.append("Billing cycle dates may be incomplete")
+        
+        extracted_data['warnings'] = warnings
+        
+        return extracted_data

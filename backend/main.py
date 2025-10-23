@@ -1,23 +1,15 @@
+# backend/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from routers import upload_router, parse_router
-from utils.database import engine, init_db
+from utils.database import engine
 from models import Base
 import os
 
 # Create database tables
 print("Initializing database...")
 Base.metadata.create_all(bind=engine)
-
-# Set permissions on the database file
-db_path = "database.db"
-if os.path.exists(db_path):
-    try:
-        os.chmod(db_path, 0o666)
-        print(f"✓ Database file permissions set: {db_path}")
-    except Exception as e:
-        print(f"⚠ Could not set permissions: {e}")
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -26,10 +18,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS middleware - IMPORTANT for Streamlit
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, specify exact origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,8 +36,9 @@ async def startup_event():
     print("=" * 50)
     print("🚀 Credit Card Parser API Started")
     print("=" * 50)
-    print(f"📂 Database location: {os.path.abspath('database.db')}")
+    print(f"📂 Database location: {os.path.abspath('../data/database.db')}")
     print(f"🌐 API Docs: http://localhost:8000/docs")
+    print(f"🎨 Frontend: Run 'streamlit run frontend/streamlit_app.py'")
     print("=" * 50)
 
 @app.get("/")
@@ -53,12 +46,8 @@ async def root():
     return {
         "message": "Credit Card Statement Parser API",
         "version": "1.0.0",
-        "endpoints": {
-            "upload": "/api/upload",
-            "parse": "/api/parse",
-            "history": "/api/history",
-            "export": "/api/export/{statement_id}"
-        }
+        "frontend": "http://localhost:8501",
+        "docs": "http://localhost:8000/docs"
     }
 
 @app.get("/health")

@@ -22,3 +22,6 @@ backend/__pycache__
 backend/utils/__pycache__
 backend/parsers/__pycache__
 backend/routers/__pycache__
+Frontend/venv/
+backend/venv/
+venv/

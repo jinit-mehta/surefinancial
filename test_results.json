@@ -1,0 +1,56 @@
+{
+  "summary": {
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "accuracy": 100.0
+  },
+  "by_bank": {
+    "HDFC": [
+      {
+        "name": "HDFC Regalia Standard",
+        "passed": true,
+        "confidence": 0.96,
+        "errors": []
+      },
+      {
+        "name": "HDFC MoneyBack Alternate Format",
+        "passed": true,
+        "confidence": 0.96,
+        "errors": []
+      }
+    ],
+    "ICICI": [
+      {
+        "name": "ICICI Coral Standard",
+        "passed": true,
+        "confidence": 0.96,
+        "errors": []
+      }
+    ],
+    "SBI": [
+      {
+        "name": "SBI SimplyCLICK Standard",
+        "passed": true,
+        "confidence": 0.96,
+        "errors": []
+      }
+    ],
+    "AXIS": [
+      {
+        "name": "Axis Flipkart Standard",
+        "passed": true,
+        "confidence": 0.96,
+        "errors": []
+      }
+    ],
+    "AMEX": [
+      {
+        "name": "AMEX Platinum Standard",
+        "passed": true,
+        "confidence": 0.96,
+        "errors": []
+      }
+    ]
+  }
+}

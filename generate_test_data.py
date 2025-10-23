@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Generate 200 realistic credit card statement PDFs for testing
+Generate REALISTIC credit card statement PDFs with variations
+This creates PDFs that closely match real bank statement formats
 """
 
 from reportlab.lib.pagesizes import letter, A4
@@ -11,348 +12,390 @@ import random
 import os
 from pathlib import Path
 
-# Configuration
-OUTPUT_DIR = Path("test_statements")
-NUM_FILES = 200
+OUTPUT_DIR = Path("realistic_test_statements")
+NUM_FILES_PER_BANK = 5  # Generate 5 per bank for quick testing
 
-# Bank configurations
-BANKS = {
-    "HDFC": {
-        "full_name": "HDFC Bank Ltd.",
-        "colors": {"primary": "#004C8F", "secondary": "#ED1C24"},
-        "card_types": ["Regalia Credit Card", "MoneyBack Credit Card", "Diners Club Black", "Infinia Credit Card"],
-        "template": "hdfc"
-    },
-    "ICICI": {
-        "full_name": "ICICI Bank Limited",
-        "colors": {"primary": "#F37021", "secondary": "#522D6D"},
-        "card_types": ["Coral Credit Card", "Platinum Chip Card", "Amazon Pay Card", "Sapphiro Credit Card"],
-        "template": "icici"
-    },
-    "SBI": {
-        "full_name": "SBI Card",
-        "colors": {"primary": "#0066B3", "secondary": "#00A550"},
-        "card_types": ["SimplyCLICK Card", "Prime Credit Card", "Elite Credit Card", "BPCL Card"],
-        "template": "sbi"
-    },
-    "AXIS": {
-        "full_name": "Axis Bank",
-        "colors": {"primary": "#97144D", "secondary": "#800020"},
-        "card_types": ["Flipkart Credit Card", "Vistara Credit Card", "Ace Credit Card", "Select Credit Card"],
-        "template": "axis"
-    },
-    "AMEX": {
-        "full_name": "American Express",
-        "colors": {"primary": "#006FCF", "secondary": "#00175A"},
-        "card_types": ["Platinum Card", "Gold Card", "Membership Rewards Card", "SmartEarn Credit Card"],
-        "template": "amex"
-    }
-}
+# Realistic amounts and variations
+REALISTIC_AMOUNTS = [
+    # Common ranges
+    (5000, 15000, 0.4),      # 40% in low range
+    (15000, 50000, 0.35),    # 35% in mid range
+    (50000, 150000, 0.20),   # 20% in high range
+    (150000, 500000, 0.05),  # 5% in very high range
+]
 
-def generate_random_date():
-    """Generate random billing cycle dates"""
-    start = datetime.now() - timedelta(days=random.randint(1, 90))
-    end = start + timedelta(days=30)
-    due = end + timedelta(days=20)
-    return start, end, due
+def generate_realistic_amount():
+    """Generate realistic credit card amounts"""
+    rand = random.random()
+    cumulative = 0
+    
+    for min_amt, max_amt, probability in REALISTIC_AMOUNTS:
+        cumulative += probability
+        if rand <= cumulative:
+            return round(random.uniform(min_amt, max_amt), 2)
+    
+    return round(random.uniform(5000, 50000), 2)
 
-def generate_card_number():
-    """Generate last 4 digits"""
-    return str(random.randint(1000, 9999))
 
-def generate_amount():
-    """Generate random amount due"""
-    return round(random.uniform(5000, 150000), 2)
-
-def create_hdfc_statement(pdf_path, data):
-    """Create HDFC Bank style statement"""
+def create_hdfc_realistic(pdf_path, data, variation=0):
+    """Create realistic HDFC statement with variations"""
     c = canvas.Canvas(str(pdf_path), pagesize=letter)
     width, height = letter
     
-    # Header
-    c.setFont("Helvetica-Bold", 20)
-    c.drawString(1*inch, height - 1*inch, "HDFC Bank Ltd.")
+    # Add variation in layout
+    y_offset = height - (1 + variation * 0.1) * inch
     
+    # Header - vary font sizes slightly
+    c.setFont("Helvetica-Bold", 20 + variation)
+    c.drawString(1*inch, y_offset, "HDFC Bank Ltd.")
+    
+    y_offset -= 0.3*inch
     c.setFont("Helvetica", 10)
-    c.drawString(1*inch, height - 1.3*inch, "Credit Card Statement")
+    c.drawString(1*inch, y_offset, "Credit Card Statement")
     
-    # Card Details
+    # Card Details with varied spacing
+    y_offset -= 0.7*inch
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(1*inch, height - 2*inch, "Card Type:")
+    c.drawString(1*inch, y_offset, "Card Type:")
     c.setFont("Helvetica", 11)
-    c.drawString(2.5*inch, height - 2*inch, data['card_type'])
+    c.drawString(2.5*inch, y_offset, data['card_type'])
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(1*inch, height - 2.3*inch, "Card Number:")
+    c.drawString(1*inch, y_offset, "Card Number:")
     c.setFont("Helvetica", 11)
-    c.drawString(2.5*inch, height - 2.3*inch, f"XXXX XXXX XXXX {data['last_4']}")
+    # Vary the format slightly
+    if variation % 2 == 0:
+        card_format = f"XXXX XXXX XXXX {data['last_4']}"
+    else:
+        card_format = f"XXXX-XXXX-XXXX-{data['last_4']}"
+    c.drawString(2.5*inch, y_offset, card_format)
     
     # Billing Period
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(1*inch, height - 2.9*inch, "Billing Period:")
+    # Vary the label
+    period_label = "Billing Period:" if variation % 3 != 0 else "Statement Period:"
+    c.drawString(1*inch, y_offset, period_label)
     c.setFont("Helvetica", 11)
-    c.drawString(2.5*inch, height - 2.9*inch, f"{data['start_date']} to {data['end_date']}")
+    c.drawString(2.5*inch, y_offset, f"{data['start_date']} to {data['end_date']}")
     
     # Payment Due Date
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 12)
-    c.drawString(1*inch, height - 3.2*inch, "Payment Due Date:")
+    due_label = "Payment Due Date:" if variation % 2 == 0 else "Pay by:"
+    c.drawString(1*inch, y_offset, due_label)
     c.setFont("Helvetica", 11)
-    c.drawString(2.5*inch, height - 3.2*inch, data['due_date'])
+    c.drawString(2.5*inch, y_offset, data['due_date'])
     
-    # Total Amount Due
+    # Total Amount Due - CRITICAL FIELD with variations
+    y_offset -= 0.5*inch
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(1*inch, height - 3.7*inch, "Total Amount Due:")
+    amount_label = "Total Amount Due:" if variation % 3 != 0 else "Amount Due:"
+    c.drawString(1*inch, y_offset, amount_label)
     c.setFont("Helvetica-Bold", 14)
-    c.drawString(2.5*inch, height - 3.7*inch, f"₹ {data['amount']:,.2f}")
     
-    # Footer
+    # Vary currency format
+    if variation % 3 == 0:
+        amount_text = f"₹ {data['amount']:,.2f}"
+    elif variation % 3 == 1:
+        amount_text = f"Rs. {data['amount']:,.2f}"
+    else:
+        amount_text = f"INR {data['amount']:,.2f}"
+    
+    c.drawString(2.5*inch, y_offset, amount_text)
+    
+    # Add some realistic noise (page numbers, etc.)
     c.setFont("Helvetica", 8)
     c.drawString(1*inch, 0.5*inch, "This is a computer generated statement")
+    c.drawString(width - 2*inch, 0.5*inch, f"Page 1 of 1")
     
     c.save()
 
-def create_icici_statement(pdf_path, data):
-    """Create ICICI Bank style statement"""
+
+def create_icici_realistic(pdf_path, data, variation=0):
+    """Create realistic ICICI statement"""
     c = canvas.Canvas(str(pdf_path), pagesize=A4)
     width, height = A4
     
-    # Header
+    y_offset = height - 1*inch
+    
     c.setFont("Helvetica-Bold", 18)
-    c.drawString(1*inch, height - 1*inch, "ICICI Bank Limited")
+    c.drawString(1*inch, y_offset, "ICICI Bank Limited")
     
+    y_offset -= 0.25*inch
     c.setFont("Helvetica", 9)
-    c.drawString(1*inch, height - 1.25*inch, "Credit Card Statement of Account")
+    c.drawString(1*inch, y_offset, "Credit Card Statement of Account")
     
-    # Card Product
+    y_offset -= 0.55*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 1.8*inch, "Product:")
+    c.drawString(1*inch, y_offset, "Product:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 1.8*inch, data['card_type'])
+    c.drawString(2.2*inch, y_offset, data['card_type'])
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.1*inch, "Card No.:")
+    card_label = "Card No.:" if variation % 2 == 0 else "Card Number:"
+    c.drawString(1*inch, y_offset, card_label)
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 2.1*inch, f"XXXX XXXX XXXX {data['last_4']}")
+    c.drawString(2.2*inch, y_offset, f"XXXX XXXX XXXX {data['last_4']}")
     
-    # Statement Period
+    y_offset -= 0.5*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.6*inch, "Statement Period:")
+    c.drawString(1*inch, y_offset, "Statement Period:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 2.6*inch, f"{data['start_date']} to {data['end_date']}")
+    c.drawString(2.2*inch, y_offset, f"{data['start_date']} to {data['end_date']}")
     
-    # Payment due by
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.9*inch, "Payment due by:")
+    c.drawString(1*inch, y_offset, "Payment due by:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 2.9*inch, data['due_date'])
+    c.drawString(2.2*inch, y_offset, data['due_date'])
     
-    # Total Amount Due
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(1*inch, height - 3.5*inch, "Total Amount Due:")
+    c.drawString(1*inch, y_offset, "Total Amount Due:")
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(2.2*inch, height - 3.5*inch, f"Rs. {data['amount']:,.2f}")
+    c.drawString(2.2*inch, y_offset, f"Rs. {data['amount']:,.2f}")
+    
+    c.setFont("Helvetica", 7)
+    c.drawString(1*inch, 0.5*inch, "ICICI Bank Ltd. | Customer Care: 1860 120 7777")
     
     c.save()
 
-def create_sbi_statement(pdf_path, data):
-    """Create SBI Card style statement"""
+
+def create_sbi_realistic(pdf_path, data, variation=0):
+    """Create realistic SBI statement"""
     c = canvas.Canvas(str(pdf_path), pagesize=letter)
     width, height = letter
     
-    # Header
+    y_offset = height - 1*inch
+    
     c.setFont("Helvetica-Bold", 19)
-    c.drawString(1*inch, height - 1*inch, "SBI Card")
+    c.drawString(1*inch, y_offset, "SBI Card")
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica", 10)
-    c.drawString(1*inch, height - 1.3*inch, "Statement of Account")
+    c.drawString(1*inch, y_offset, "Statement of Account")
     
-    # Card Product Name
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 1.9*inch, "Card Product:")
+    c.drawString(1*inch, y_offset, "Card Product:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.3*inch, height - 1.9*inch, data['card_type'])
+    c.drawString(2.3*inch, y_offset, data['card_type'])
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.2*inch, "Card Number:")
+    c.drawString(1*inch, y_offset, "Card Number:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.3*inch, height - 2.2*inch, f"XXXX XXXX XXXX {data['last_4']}")
+    c.drawString(2.3*inch, y_offset, f"XXXX XXXX XXXX {data['last_4']}")
     
-    # Statement Period
+    y_offset -= 0.5*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.7*inch, "Statement Period:")
+    c.drawString(1*inch, y_offset, "Statement Period:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.3*inch, height - 2.7*inch, f"{data['start_date']} to {data['end_date']}")
+    c.drawString(2.3*inch, y_offset, f"{data['start_date']} to {data['end_date']}")
     
-    # Payment Due Date
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 3.0*inch, "Pay By:")
+    c.drawString(1*inch, y_offset, "Pay By:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.3*inch, height - 3.0*inch, data['due_date'])
+    c.drawString(2.3*inch, y_offset, data['due_date'])
     
-    # Total Amount Payable
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(1*inch, height - 3.6*inch, "Total Amount Payable:")
+    c.drawString(1*inch, y_offset, "Total Amount Payable:")
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(2.3*inch, height - 3.6*inch, f"Rs. {data['amount']:,.2f}")
+    c.drawString(2.3*inch, y_offset, f"Rs. {data['amount']:,.2f}")
     
     c.save()
 
-def create_axis_statement(pdf_path, data):
-    """Create Axis Bank style statement"""
+
+def create_axis_realistic(pdf_path, data, variation=0):
+    """Create realistic Axis statement"""
     c = canvas.Canvas(str(pdf_path), pagesize=letter)
     width, height = letter
     
-    # Header
+    y_offset = height - 1*inch
+    
     c.setFont("Helvetica-Bold", 19)
-    c.drawString(1*inch, height - 1*inch, "Axis Bank")
+    c.drawString(1*inch, y_offset, "Axis Bank")
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica", 10)
-    c.drawString(1*inch, height - 1.3*inch, "Credit Card Statement")
+    c.drawString(1*inch, y_offset, "Credit Card Statement")
     
-    # Card Name
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 1.9*inch, "Card Name:")
+    c.drawString(1*inch, y_offset, "Card Name:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 1.9*inch, data['card_type'])
+    c.drawString(2.2*inch, y_offset, data['card_type'])
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.2*inch, "Card No.:")
+    c.drawString(1*inch, y_offset, "Card No.:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 2.2*inch, f"XXXX XXXX XXXX {data['last_4']}")
+    c.drawString(2.2*inch, y_offset, f"XXXX XXXX XXXX {data['last_4']}")
     
-    # Billing Period
+    y_offset -= 0.5*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.7*inch, "Billing Period:")
+    c.drawString(1*inch, y_offset, "Billing Period:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 2.7*inch, f"{data['start_date']} to {data['end_date']}")
+    c.drawString(2.2*inch, y_offset, f"{data['start_date']} to {data['end_date']}")
     
-    # Payment Due Date
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 3.0*inch, "Payment Due Date:")
+    c.drawString(1*inch, y_offset, "Payment Due Date:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.2*inch, height - 3.0*inch, data['due_date'])
+    c.drawString(2.2*inch, y_offset, data['due_date'])
     
-    # New Balance
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(1*inch, height - 3.6*inch, "New Balance:")
+    c.drawString(1*inch, y_offset, "New Balance:")
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(2.2*inch, height - 3.6*inch, f"INR {data['amount']:,.2f}")
+    c.drawString(2.2*inch, y_offset, f"INR {data['amount']:,.2f}")
     
     c.save()
 
-def create_amex_statement(pdf_path, data):
-    """Create American Express style statement"""
+
+def create_amex_realistic(pdf_path, data, variation=0):
+    """Create realistic AMEX statement"""
     c = canvas.Canvas(str(pdf_path), pagesize=letter)
     width, height = letter
     
-    # Header
+    y_offset = height - 1*inch
+    
     c.setFont("Helvetica-Bold", 20)
-    c.drawString(1*inch, height - 1*inch, "American Express")
+    c.drawString(1*inch, y_offset, "American Express")
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica", 10)
-    c.drawString(1*inch, height - 1.3*inch, "Statement of Account")
+    c.drawString(1*inch, y_offset, "Statement of Account")
     
-    # Card Product
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 1.9*inch, "Card Product:")
+    c.drawString(1*inch, y_offset, "Card Product:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.4*inch, height - 1.9*inch, data['card_type'])
+    c.drawString(2.4*inch, y_offset, data['card_type'])
     
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.2*inch, "Account ending in:")
+    c.drawString(1*inch, y_offset, "Account ending in:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.4*inch, height - 2.2*inch, data['last_4'])
+    c.drawString(2.4*inch, y_offset, data['last_4'])
     
-    # Statement Closing Date
+    y_offset -= 0.5*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 2.7*inch, "Statement Period:")
+    c.drawString(1*inch, y_offset, "Statement Period:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.4*inch, height - 2.7*inch, f"{data['start_date']} to {data['end_date']}")
+    c.drawString(2.4*inch, y_offset, f"{data['start_date']} to {data['end_date']}")
     
-    # Please pay by
+    y_offset -= 0.3*inch
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(1*inch, height - 3.0*inch, "Please pay by:")
+    c.drawString(1*inch, y_offset, "Please pay by:")
     c.setFont("Helvetica", 10)
-    c.drawString(2.4*inch, height - 3.0*inch, data['due_date'])
+    c.drawString(2.4*inch, y_offset, data['due_date'])
     
-    # Payment Due
+    y_offset -= 0.6*inch
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(1*inch, height - 3.6*inch, "Payment Due:")
+    c.drawString(1*inch, y_offset, "Payment Due:")
     c.setFont("Helvetica-Bold", 13)
-    c.drawString(2.4*inch, height - 3.6*inch, f"₹ {data['amount']:,.2f}")
+    c.drawString(2.4*inch, y_offset, f"₹ {data['amount']:,.2f}")
     
     c.save()
 
-def generate_statement(bank_code, index):
-    """Generate a single statement"""
-    bank_info = BANKS[bank_code]
-    
-    # Generate random data
-    start_date, end_date, due_date = generate_random_date()
-    
-    data = {
-        'card_type': random.choice(bank_info['card_types']),
-        'last_4': generate_card_number(),
-        'start_date': start_date.strftime("%d %b %Y"),
-        'end_date': end_date.strftime("%d %b %Y"),
-        'due_date': due_date.strftime("%d %b %Y"),
-        'amount': generate_amount()
+
+BANK_CONFIGS = {
+    "HDFC": {
+        "cards": ["Regalia Credit Card", "MoneyBack Credit Card", "Diners Club Black", "Infinia Credit Card"],
+        "generator": create_hdfc_realistic
+    },
+    "ICICI": {
+        "cards": ["Coral Credit Card", "Platinum Chip Card", "Amazon Pay Card", "Sapphiro Credit Card"],
+        "generator": create_icici_realistic
+    },
+    "SBI": {
+        "cards": ["SimplyCLICK Card", "Prime Credit Card", "Elite Credit Card", "BPCL Card"],
+        "generator": create_sbi_realistic
+    },
+    "AXIS": {
+        "cards": ["Flipkart Credit Card", "Vistara Credit Card", "Ace Credit Card", "Select Credit Card"],
+        "generator": create_axis_realistic
+    },
+    "AMEX": {
+        "cards": ["Platinum Card", "Gold Card", "Membership Rewards Card", "SmartEarn Credit Card"],
+        "generator": create_amex_realistic
     }
+}
+
+
+def generate_dates():
+    """Generate realistic billing dates"""
+    # Random date within last 90 days
+    start = datetime.now() - timedelta(days=random.randint(1, 90))
+    end = start + timedelta(days=30)
+    due = end + timedelta(days=20)
     
-    # Create filename
-    filename = f"{bank_code}_{index:03d}_{data['last_4']}.pdf"
-    pdf_path = OUTPUT_DIR / filename
-    
-    # Create PDF based on bank template
-    if bank_code == "HDFC":
-        create_hdfc_statement(pdf_path, data)
-    elif bank_code == "ICICI":
-        create_icici_statement(pdf_path, data)
-    elif bank_code == "SBI":
-        create_sbi_statement(pdf_path, data)
-    elif bank_code == "AXIS":
-        create_axis_statement(pdf_path, data)
-    elif bank_code == "AMEX":
-        create_amex_statement(pdf_path, data)
-    
-    return filename, data
+    return (
+        start.strftime("%d %b %Y"),
+        end.strftime("%d %b %Y"),
+        due.strftime("%d %b %Y")
+    )
+
 
 def main():
-    """Generate all test statements"""
-    print("🏦 Credit Card Statement Generator")
-    print("=" * 50)
+    """Generate realistic test PDFs"""
+    print("=" * 70)
+    print("🎯 REALISTIC CREDIT CARD STATEMENT GENERATOR")
+    print("=" * 70)
+    print()
     
-    # Create output directory
     OUTPUT_DIR.mkdir(exist_ok=True)
-    print(f"📁 Output directory: {OUTPUT_DIR.absolute()}\n")
-    
-    # Distribute files across banks
-    files_per_bank = NUM_FILES // len(BANKS)
-    remaining = NUM_FILES % len(BANKS)
     
     total_generated = 0
     summary = {}
     
-    for idx, (bank_code, bank_info) in enumerate(BANKS.items()):
-        count = files_per_bank + (1 if idx < remaining else 0)
-        summary[bank_code] = count
+    for bank_code, config in BANK_CONFIGS.items():
+        bank_dir = OUTPUT_DIR / bank_code.lower()
+        bank_dir.mkdir(exist_ok=True)
         
-        print(f"📄 Generating {count} {bank_code} statements...")
+        print(f"📄 Generating {NUM_FILES_PER_BANK} {bank_code} statements...")
         
-        for i in range(count):
-            filename, data = generate_statement(bank_code, total_generated + 1)
-            total_generated += 1
+        for i in range(NUM_FILES_PER_BANK):
+            # Generate varied data
+            card_type = random.choice(config["cards"])
+            last_4 = str(random.randint(1000, 9999))
+            start_date, end_date, due_date = generate_dates()
+            amount = generate_realistic_amount()
             
-            if (total_generated) % 20 == 0:
-                print(f"   Generated {total_generated}/{NUM_FILES} files...")
+            data = {
+                'card_type': card_type,
+                'last_4': last_4,
+                'start_date': start_date,
+                'end_date': end_date,
+                'due_date': due_date,
+                'amount': amount
+            }
+            
+            filename = f"{bank_code.lower()}_{i+1:02d}_{last_4}.pdf"
+            pdf_path = bank_dir / filename
+            
+            # Generate with variation
+            config["generator"](pdf_path, data, variation=i)
+            
+            total_generated += 1
+        
+        summary[bank_code] = NUM_FILES_PER_BANK
     
-    print(f"\n✅ Successfully generated {total_generated} PDF statements!")
+    print(f"\n✅ Successfully generated {total_generated} realistic PDFs!")
     print("\n📊 Distribution:")
     for bank, count in summary.items():
-        print(f"   {bank}: {count} files")
+        print(f"   {bank}: {count} files in {OUTPUT_DIR}/{bank.lower()}/")
     
-    print(f"\n📂 All files saved in: {OUTPUT_DIR.absolute()}")
-    print(f"\n🚀 You can now upload these to test the parser!")
+    print(f"\n📁 All files saved in: {OUTPUT_DIR.absolute()}")
+    print(f"\n🧪 Run tests with: python test_parser.py")
+    print()
+
 
 if __name__ == "__main__":
     main()
